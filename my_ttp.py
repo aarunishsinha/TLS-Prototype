@@ -2,11 +2,12 @@ import random
 import os
 from datetime import datetime
 from OpenSSL import crypto
+import socket
 
 def create_CA(root_ca_path, key_path):
     ''' Create CA and Key'''
 
-    ca_key = crypto.PKey()
+    ca_key = crypto.PKey()                              # (RSA public key) OR (key pair)
     ca_key.generate_key(crypto.TYPE_RSA, 4096)
 
 
@@ -15,16 +16,15 @@ def create_CA(root_ca_path, key_path):
     ca_cert.set_serial_number(random.randint(50000000, 100000000))
 
 
-    # ca_subj = ca_cert.get_subject()
-    ca_subj = crypto.X509Name()
-    ca_subj.countryName = "IN"#input("Country Name (2 letter code) [XX]: ")
-    ca_subj.stateOrProvinceName = "New Delhi"#input("State or Province Name (full name) []: ")
-    ca_subj.localityName = "Hauz Khas"#input("Locality Name (eg, city) [Default City]: ")
-    ca_subj.organizationName = "IITD"#input("Organization Name (eg, company) [Default Company Ltd]: ")
-    ca_subj.organizationalUnitName = "CSE IITD"#input("Organizational Unit Name (eg, section) []: ")
-    ca_subj.commonName = "CSE IITD TTP"#input("Common Name (eg, your name or your server's hostname) []: ")
-    # ca_subj.emailAddress = input("Email Address []: ")
+    ca_subj = crypto.X509Name(ca_cert.get_subject())
+    ca_subj.__setattr__('C', "IN")
+    ca_subj.__setattr__('ST', "New Delhi")
+    ca_subj.__setattr__('L', "Hauz Khas")
+    ca_subj.__setattr__('O', "IITD")
+    ca_subj.__setattr__('OU', "CSE IITD")
+    ca_subj.__setattr__('CN', "CSE IITD TTP")
 
+    ca_cert.set_subject(ca_subj)
     ca_cert.set_issuer(ca_subj)
     ca_cert.set_pubkey(ca_key)
 
@@ -43,7 +43,7 @@ def create_CA(root_ca_path, key_path):
 
 
     ca_cert.gmtime_adj_notBefore(0)
-    ca_cert.gmtime_adj_notAfter(10*365*24*60*60)
+    ca_cert.gmtime_adj_notAfter(365*24*60*60)
 
     ca_cert.sign(ca_key, 'sha256')
 
@@ -147,16 +147,46 @@ def main():
         ca_cert, ca_key = load_CA(root_ca_path, key_path)
         CA_varification(ca_cert)
 
+    HOST = '127.0.0.1'
+    PORT_TTP = 65433
 
-    while True:
-        client_cn = input("Client Certificate CN: ")
-        if client_cn != '':
-            break
-        else:
-            print ("Please provide a valid CN for client certificate")
+    server_cn = ''
+
+    ttp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    ttp_socket.bind((HOST,PORT_TTP))
+    ttp_socket.listen()
+    server_conn,server_addr = ttp_socket.accept()
+    with server_conn:
+        print ("Connected by", server_addr)
+        while True:
+            data = server_conn.recv(1024)
+            if not data:
+                break
+            server_cn = data.decode()
+            # client_conn.sendall(data)
+    ttp_socket.close()
 
     subject = ca_cert.get_subject()
+    create_cert(ca_cert, subject, ca_key, server_cn)
+
+    client_cn = ''
+
+    ttp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    ttp_socket.bind((HOST,PORT_TTP))
+    ttp_socket.listen()
+    client_conn,client_addr = ttp_socket.accept()
+    with client_conn:
+        print ("Connected by", client_addr)
+        while True:
+            data = client_conn.recv(1024)
+            if not data:
+                break
+            client_cn = data.decode()
+            # client_conn.sendall(data)
+    ttp_socket.close()
+
     create_cert(ca_cert, subject, ca_key, client_cn)
+
 
 if __name__ == "__main__":
     main()
