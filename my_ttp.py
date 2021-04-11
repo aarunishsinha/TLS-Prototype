@@ -3,12 +3,15 @@ import os
 from datetime import datetime
 from OpenSSL import crypto
 import socket
+import ssl
 
 def create_CA(root_ca_path, key_path):
     ''' Create CA and Key'''
 
     ca_key = crypto.PKey()                              # (RSA public key) OR (key pair)
     ca_key.generate_key(crypto.TYPE_RSA, 4096)
+    # print (ca_key.p)
+    # ca_key = RSA.generate(1024, random_generator)
 
 
     ca_cert = crypto.X509()
@@ -55,6 +58,9 @@ def create_CA(root_ca_path, key_path):
     with open(key_path, "wt") as f:
         f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, ca_key).decode("utf-8"))
 
+    # Save public key
+    with open('Pubkeys/ca.key', "wt") as f:
+        f.write(crypto.dump_publickey(crypto.FILETYPE_PEM, ca_key).decode("utf-8"))
 
 
 def load_CA(root_ca_path, key_path):
@@ -66,6 +72,10 @@ def load_CA(root_ca_path, key_path):
         ca_key = crypto.load_privatekey(crypto.FILETYPE_PEM, f.read())
     return ca_cert, ca_key
 
+def load_pubkey(path):
+    with open(path, "r") as f:
+        ca_key = crypto.load_publickey(crypto.FILETYPE_PEM, f.read())
+    return ca_key
 
 def CA_varification(ca_cert):
     ''' Varify the CA certificate '''
@@ -76,11 +86,11 @@ def CA_varification(ca_cert):
     print ("CA Certificate valid for {} days".format(validity))
 
 
-def create_cert(ca_cert, ca_subj, ca_key, client_cn):
+def create_cert(ca_cert, ca_subj, ca_key, client_cn,user_key):
     ''' Create Client certificate '''
 
-    client_key = crypto.PKey()
-    client_key.generate_key(crypto.TYPE_RSA, 4096)
+    # client_key = crypto.PKey()
+    # client_key.generate_key(crypto.TYPE_RSA, 4096)
 
     client_cert = crypto.X509()
     client_cert.set_version(2)
@@ -90,7 +100,7 @@ def create_cert(ca_cert, ca_subj, ca_key, client_cn):
     client_subj.commonName = client_cn
 
     client_cert.set_issuer(ca_subj)
-    client_cert.set_pubkey(client_key)
+    client_cert.set_pubkey(user_key)
 
     client_cert.add_extensions([
         crypto.X509Extension(b"basicConstraints", False, b"CA:FALSE"),
@@ -112,12 +122,9 @@ def create_cert(ca_cert, ca_subj, ca_key, client_cn):
     client_cert.sign(ca_key, 'sha256')
 
 
-    with open(client_cn + ".crt", "wt") as f:
+    with open("CA/"+client_cn + ".crt", "wt") as f:
         f.write(crypto.dump_certificate(crypto.FILETYPE_PEM, client_cert).decode("utf-8"))
 
-
-    with open(client_cn + ".key", "wt") as f:
-        f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, client_key).decode("utf-8"))
 
 def client_varification():
     pass
@@ -131,7 +138,9 @@ def main():
     key_path = "CA/ca.key"
     root_ca_path = "CA/ca.crt"
 
-
+    if not os.path.exists('PubKeys'):
+        # print ("Creating CA driectory")
+        os.makedirs('PubKeys')
     if not os.path.exists('CA'):
         print ("Creating CA driectory")
         os.makedirs('CA')
@@ -147,27 +156,31 @@ def main():
         ca_cert, ca_key = load_CA(root_ca_path, key_path)
         CA_varification(ca_cert)
 
+        # SERVER INTERACTION
     HOST = '127.0.0.1'
-    PORT_TTP = 65433
+    PORT_TTP = 54433
 
     server_cn = ''
+    subject = ca_cert.get_subject()
 
     ttp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     ttp_socket.bind((HOST,PORT_TTP))
     ttp_socket.listen()
     server_conn,server_addr = ttp_socket.accept()
-    with server_conn:
-        print ("Connected by", server_addr)
-        while True:
-            data = server_conn.recv(1024)
-            if not data:
-                break
-            server_cn = data.decode()
-            # client_conn.sendall(data)
+    print ("Connected by", server_addr)
+    while True:
+        data = server_conn.recv(1024)
+        if not data:
+            break
+        server_cn = data.decode()
+    server_key=load_pubkey("PubKeys/server.key")
+    create_cert(ca_cert, subject, ca_key, server_cn, server_key)
+    # server_conn.sendall(server_cn.encode())
     ttp_socket.close()
 
-    subject = ca_cert.get_subject()
-    create_cert(ca_cert, subject, ca_key, server_cn)
+
+        # CLIENT INTERATION
+    PORT_TTP = 54434
 
     client_cn = ''
 
@@ -175,17 +188,19 @@ def main():
     ttp_socket.bind((HOST,PORT_TTP))
     ttp_socket.listen()
     client_conn,client_addr = ttp_socket.accept()
-    with client_conn:
-        print ("Connected by", client_addr)
-        while True:
-            data = client_conn.recv(1024)
-            if not data:
-                break
-            client_cn = data.decode()
-            # client_conn.sendall(data)
+    # with client_conn:
+    print ("Connected by", client_addr)
+    while True:
+        data = client_conn.recv(1024)
+        if not data:
+            break
+        client_cn = data.decode()
+        # client_conn.sendall(data)
+    client_key=load_pubkey("PubKeys/client.key")
+    create_cert(ca_cert, subject, ca_key, client_cn, client_key)
+    # client_conn.sendall(client_cn.encode())
     ttp_socket.close()
 
-    create_cert(ca_cert, subject, ca_key, client_cn)
 
 
 if __name__ == "__main__":
