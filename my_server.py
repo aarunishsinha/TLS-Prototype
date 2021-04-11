@@ -61,10 +61,10 @@ def main():
     with client_conn:
         print ("Connected by", client_addr)
         while True:
-            data = client_conn.recv(1024)
+            data = secure_serv_client_sock.recv(1024)
             if not data:
                 break
-            client_conn.sendall(data)
+            secure_serv_client_sock.send(data)
     secure_serv_client_sock.close()
 
 if __name__=="__main__":

@@ -33,17 +33,33 @@ def main():
     ttp_socket.close()
 
     time.sleep(3)
+    # Create an SSL context
+    context = ssl.SSLContext();
+    context.verify_mode = ssl.CERT_REQUIRED;
 
+    # Load CA certificate with which the client will validate the server certificate
+    context.load_verify_locations("./CA/ca.crt");
+    context.load_cert_chain(certfile="./CA/client.crt", keyfile="./Client/client.key");
     HOST = '127.0.0.1'
     PORT_S = 54432
 
     serv_client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serv_client_sock.connect((HOST,PORT_S))
-    serv_client_sock.sendall(b'Hello World')
-    data = serv_client_sock.recv(1024)
+    secureClientSocket  = context.wrap_socket(serv_client_sock);
+    secureClientSocket.connect((HOST,PORT_S))
+    server_cert = secureClientSocket.getpeercert();
+    # Validate whether the Certificate is indeed issued to the server
+    subject = dict(item[0] for item in server_cert['subject']);
+    commonName = subject['commonName'];
+    if not server_cert:
+        raise Exception("Unable to retrieve server certificate");
+
+    if commonName != 'server':
+        raise Exception("Incorrect common name in server certificate");
+    secureClientSocket.send(b'Hello World')
+    data = secureClientSocket.recv(1024)
 
     print ("Recieved", data.decode())
-    serv_client_sock.close()
+    secureClientSocket.close()
 
 if __name__=="__main__":
     main()
