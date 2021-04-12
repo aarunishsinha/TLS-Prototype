@@ -120,7 +120,7 @@ def create_cert(ca_cert, ca_subj, ca_key, client_cn,user_key):
     client_cert.gmtime_adj_notBefore(0)
     client_cert.gmtime_adj_notAfter(365*24*60*60)
 
-    client_cert.sign(ca_key, 'sha256')
+    client_cert.sign(ca_key, 'sha384')
 
 
     with open("CA/"+client_cn + ".crt", "wt") as f:

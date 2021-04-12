@@ -51,6 +51,7 @@ def main():
     client_cert = secure_serv_client_sock.getpeercert();
     # print (client_cert)
     print (secure_serv_client_sock.cipher())
+    print (secure_serv_client_sock.compression())
     # print (secure_serv_client_sock.shared_ciphers())
 
     clt_subject    = dict(item[0] for item in client_cert['subject']);

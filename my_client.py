@@ -37,8 +37,12 @@ def main():
     # Create an SSL context
     context = ssl.SSLContext();
     context.verify_mode = ssl.CERT_REQUIRED;
-    cipher_suite = 'ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256'
-    context.set_ciphers(cipher_suite)
+    # cipher_suite = 'ECDHE-ECDSA-AES256-SHA384:DHE-RSA-AES256-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384'
+    ## SETTING THE CHIPHER SUITE RANDOMLY
+    cipher_suite = ['ECDHE-RSA-AES128-SHA256','ECDHE-RSA-AES256-SHA384']
+    cipher_s = random.choice(cipher_suite)
+    # print(cipher_s)
+    context.set_ciphers(cipher_s)
     # Load CA certificate with which the client will validate the server certificate
     context.load_verify_locations("./CA/ca.crt");
     context.load_cert_chain(certfile="./CA/client.crt", keyfile="./Client/client.key");
@@ -51,6 +55,7 @@ def main():
     server_cert = secureClientSocket.getpeercert();
     # print (server_cert)
     print (secureClientSocket.cipher())
+    print (secureClientSocket.compression())
     # print (secureClientSocket.shared_ciphers())
     # Validate whether the Certificate is indeed issued to the server
     subject = dict(item[0] for item in server_cert['subject']);
