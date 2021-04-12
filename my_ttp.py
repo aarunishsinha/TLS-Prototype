@@ -10,6 +10,7 @@ def create_CA(root_ca_path, key_path):
 
     ca_key = crypto.PKey()                              # (RSA public key) OR (key pair)
     ca_key.generate_key(crypto.TYPE_RSA, 4096)
+    # ca_key.generate_key(crypto.TYPE_DSA, 4096)
     # print (ca_key.p)
     # ca_key = RSA.generate(1024, random_generator)
 

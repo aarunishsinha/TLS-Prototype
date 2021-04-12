@@ -11,6 +11,7 @@ def main():
     # Retrieving a certificate from TTP
     server_key = crypto.PKey()
     server_key.generate_key(crypto.TYPE_RSA,4096)
+    # server_key.generate_key(crypto.TYPE_DSA,4096)
     if not os.path.exists('PubKeys'):
         # print ("Creating CA driectory")
         os.makedirs('PubKeys')
@@ -36,7 +37,7 @@ def main():
     # Loading server certificate
     with open("CA/server.crt", "r") as f:
         server_cert = crypto.load_certificate(crypto.FILETYPE_PEM, f.read())
-    print (server_cert)
+    # print (server_cert)
     # Connecting to Client
     HOST = '127.0.0.1'
     PORT_S = 54432
@@ -48,6 +49,9 @@ def main():
     secure_serv_client_sock = ssl.wrap_socket(client_conn,server_side=True,cert_reqs=ssl.CERT_REQUIRED,ssl_version=ssl.PROTOCOL_TLSv1_2,ca_certs="./CA/ca.crt",certfile="./CA/server.crt",keyfile="./Server/server.key")
     # Get certificate from the client
     client_cert = secure_serv_client_sock.getpeercert();
+    # print (client_cert)
+    print (secure_serv_client_sock.cipher())
+    # print (secure_serv_client_sock.shared_ciphers())
 
     clt_subject    = dict(item[0] for item in client_cert['subject']);
     clt_commonName = clt_subject['commonName'];
