@@ -79,7 +79,7 @@ def load_pubkey(path):
     return ca_key
 
 def CA_varification(ca_cert):
-    ''' Varify the CA certificate '''
+    ''' Verify the CA certificate '''
 
     ca_expiry = datetime.strptime(str(ca_cert.get_notAfter(), 'utf-8'),"%Y%m%d%H%M%SZ")
     now = datetime.now()
@@ -168,7 +168,7 @@ def main():
     ttp_socket.bind((HOST,PORT_TTP))
     ttp_socket.listen()
     server_conn,server_addr = ttp_socket.accept()
-    print ("Connected by", server_addr)
+    print ("Connecting to server")
     while True:
         data = server_conn.recv(1024)
         if not data:
@@ -176,6 +176,7 @@ def main():
         server_cn = data.decode()
     server_key=load_pubkey("PubKeys/server.key")
     create_cert(ca_cert, subject, ca_key, server_cn, server_key)
+    print ("Server Digital Certificate issued")
     # server_conn.sendall(server_cn.encode())
     ttp_socket.close()
 
@@ -190,7 +191,7 @@ def main():
     ttp_socket.listen()
     client_conn,client_addr = ttp_socket.accept()
     # with client_conn:
-    print ("Connected by", client_addr)
+    print ("Connecting to Client")
     while True:
         data = client_conn.recv(1024)
         if not data:
@@ -199,6 +200,7 @@ def main():
         # client_conn.sendall(data)
     client_key=load_pubkey("PubKeys/client.key")
     create_cert(ca_cert, subject, ca_key, client_cn, client_key)
+    print ("Client Digital Certificate issued")
     # client_conn.sendall(client_cn.encode())
     ttp_socket.close()
 
