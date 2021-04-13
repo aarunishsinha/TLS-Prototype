@@ -63,7 +63,6 @@ def main():
     # Get certificate from the client
     print ("Requested Client Certificate")
     client_cert = secure_serv_client_sock.getpeercert();
-    print (secure_serv_client_sock.cipher())
 
     # Check the client certificate bears the expected name as per server's policy
     if not client_cert:
@@ -80,7 +79,7 @@ def main():
     tc = datetime.timestamp(n)
     if tc-t1 < 0:
         raise Exception ("Certificate has expired")
-        
+
     print ("Certificate Verified")
 
     m = "The OTP for transferring Rs 1,00,000 to your friend’s account is 256345."
