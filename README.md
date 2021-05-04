@@ -37,4 +37,4 @@ Terminal-3:
 $ python3 my_client.py
 ```
 
-*Note*: For more details, check [Report](https://github.com/aarunishsinha/TLS-Prototype/readme.pdf)
+*Note*: For more details, check [Report](https://github.com/aarunishsinha/TLS-Prototype/blob/main/readme.pdf)
